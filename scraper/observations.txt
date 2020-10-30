@@ -1,0 +1,36 @@
+
+CASES
+
+Organizers:
+- Individual:
+	- with location: https://www.gofundme.com/f/homeless-black-trans-women-fund/
+	- without location: https://www.gofundme.com/f/letterkenny-babies-for-little-angels
+	- with beneficiary: https://www.gofundme.com/f/fundraiser-maritime-sikh-society-halifax-NS
+	- without beneficiary: 
+	
+- Team:
+	- with translation: https://www.gofundme.com/f/help-azra-haar-strijd-aan-te-gaan-met-leukemie
+	- without translation: https://www.gofundme.com/f/alviars-chance-for-a-future
+	- with beneficiary: https://www.gofundme.com/f/alviars-chance-for-a-future
+	- without beneficiary: https://www.gofundme.com/f/carmelites-nuns
+	- with team name: 
+	- without team name: https://www.gofundme.com/f/alviars-chance-for-a-future
+	
+	
+IFs :   - location
+	- beneficiary
+	- team name
+	
+Currency:
+   - 1 digit currency(sign)
+   - 2 digits currency : https://www.gofundme.com/f/sadaqah-jariyah-for-khader-bile-hussein
+   
+   
+BUGS:
+- not every comment has a donation attached: https://www.gofundme.com/f/betos-funeral-and-memorial-fund
+- beneficiary can be an organization too: https://www.gofundme.com/f/collegetribecarvercamp
+- some have no goal: https://www.gofundme.com/f/4zuzmd-funeral-cost-and-other-expenses
+
+   
+QUESTIONS:
+	- Do you need the name of all team members? Or is the number of members enough?
