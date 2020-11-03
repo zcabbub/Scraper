@@ -1,5 +1,16 @@
 
 import pandas as pd
+from scraper.scraper import Scraper
+
+def get_api_url_for(url, item):
+        first_part = 'https://gateway.gofundme.com/web-gateway/v1/feed/'
+        last_part = '/' + str(item)
+
+        middle_part = url.replace('https://www.gofundme.com/f/', '')
+
+        api_url = first_part + middle_part + last_part
+
+        return api_url
 
 def get_template():
     table = pd.read_csv('template.csv')
@@ -19,13 +30,14 @@ def get_urls(size, offset=0):
                 if count == size:
                     break
                 count += 1
+                line = line.replace('\n', '')
                 urls.append(line)
-
-    urls = [url.replace('\n', '') for url in urls]
+                urls.append(get_api_url_for(line, 'counts'))
+                urls.append(get_api_url_for(line, 'updates'))
+                urls.append(get_api_url_for(line, 'comments'))
 
     return urls
-    
-    
+
 import sys
 import eventlet 
 if sys.version_info[0]==2:
@@ -77,9 +89,7 @@ class SingleSessionRetriever:
                 if self._failures == self._failures_limit:
                     self._reset_session()
 
-
 class MultiSessionRetriever:
-
     def __init__(self, username, password, session_requests_limit, session_failures_limit):
         self._username = username
         self._password = password
@@ -89,8 +99,10 @@ class MultiSessionRetriever:
 
     def retrieve(self, urls, timeout, parallel_sessions_limit, callback):
         pool = eventlet.GreenPool(parallel_sessions_limit)
+        counter = 0
         for url, body in pool.imap(lambda url: self._retrieve_single(url, timeout), urls):
-            callback(url, body)
+            counter = callback(url, body, counter)
+           
 
     def _retrieve_single(self, url, timeout):
         if self._sessions_stack:
@@ -102,20 +114,44 @@ class MultiSessionRetriever:
         self._sessions_stack.append(session)
         return url, body
 
+counter=0
+main_url = ''
+html = ''
+counts = ''
+updates = ''
+comments = ''
+table = get_template()
 
-from scraper.scraper import Scraper
+def output(url, body, counter):
+    if counter == 0:
+        global main_url
+        main_url = url
+        global html 
+        html = body
+        return counter + 1
+    elif counter == 1:
+        global counts 
+        counts = body
+        return counter + 1
+    elif counter == 2:
+        global updates 
+        updates = body
+        return counter + 1
+    else:
+        comments = body
+        scraper = Scraper(main_url, html, counts, updates, comments)
+        scraper.start()
+        row = scraper.get_dictionary()
+        global table
+        table = table.append(row, ignore_index = True)
+        return 0
+
 
 limit = int(input('How many urls?')) + 1
 offset = int(input('How much offset?'))
 
-table = get_template()
-urls = get_urls(limit, offset)
 
-def output(url, body):
-    scraper = Scraper(url, body)
-    scraper.start()
-    row = scraper.get_dictionary()
-    table.append(row, ignore_index = True)
+urls = get_urls(limit, offset)
 
 n_total_req = 1
 req_timeout = 10
@@ -123,8 +159,10 @@ n_parallel_exit_nodes = 100
 switch_ip_every_n_req = 10
 max_failures = 2
 
-MultiSessionRetriever('lum-customer-a_bubutanu-zone-gofundme_com-route_err-pass_dyn', 'GFMscraper1', switch_ip_every_n_req, max_failures).retrieve(
-    urls * n_total_req, req_timeout, n_parallel_exit_nodes, output)
+multiRetriever = MultiSessionRetriever('lum-customer-a_bubutanu-zone-gofundme_com-route_err-pass_dyn', 'GFMscraper1', switch_ip_every_n_req, max_failures)
+
+multiRetriever.retrieve(urls * n_total_req, req_timeout, n_parallel_exit_nodes, output)
+
 print('Scraping successful')
 
 table.to_csv('{filename}.csv'.format(filename=input('File name:')))

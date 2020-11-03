@@ -3,6 +3,7 @@
 import requests
 from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup
+import json as jsn
 
 from re import sub, findall
 from decimal import Decimal
@@ -12,13 +13,13 @@ from urllib.error import URLError
 class Scraper():
      # INIT:
 
-    # def __init__(self, url):
-    #     Scraper._counter+=1
-    #     self.url = url
-
-    def __init__(self, url, body):
+    def __init__(self, url, html, counts, updates, comments):
         self.url = url
-        self.html = body
+        self.html = html
+        self.json_counts = counts
+        self.json_updates = updates
+        self.json_comments = comments
+        
 
     # FINDERS:
 
@@ -171,32 +172,33 @@ class Scraper():
     ## API calls
 
     ####create API url
-    def get_api_url_for(self, item):
-        first_part = 'https://gateway.gofundme.com/web-gateway/v1/feed/'
-        last_part = '/' + str(item)
+    # def get_api_url_for(self, item):
+    #     first_part = 'https://gateway.gofundme.com/web-gateway/v1/feed/'
+    #     last_part = '/' + str(item)
 
-        middle_part = self.get_url().replace('https://www.gofundme.com/f/', '')
+    #     middle_part = self.get_url().replace('https://www.gofundme.com/f/', '')
 
-        api_url = first_part + middle_part + last_part
+    #     api_url = first_part + middle_part + last_part
 
-        return api_url
+    #     return api_url
 
-    def get_json_for(self, item):
-        url = self.get_api_url_for(item)
-        response = requests.get(url)
-        json = response.json()
-        return json
-        # try:
-        #     json['error']
-        # except KeyError:
-        #     return json
-        # else:
-        #     raise ValueError('Wrong path: {message}'.format(message = json['error']['short_description']))
+    # def get_json_for(self, item):
+    #     url = self.get_api_url_for(item)
+    #     response = requests.get(url)
+    #     json = response.json()
+    #     return json
+    #     # try:
+    #     #     json['error']
+    #     # except KeyError:
+    #     #     return json
+    #     # else:
+    #     #     raise ValueError('Wrong path: {message}'.format(message = json['error']['short_description']))
 
     ### counts
     def find_counts(self):
         try:
-            json = self.get_json_for('counts')
+            json = jsn.loads(self.json_counts.decode('utf-8'))
+
             if json['references'] == {}:
                 counts = {}
             else: 
@@ -244,7 +246,7 @@ class Scraper():
 
     ### updates
     def find_updates(self):
-        json = self.get_json_for('updates')
+        json = jsn.loads(self.json_updates.decode('utf-8'))
 
         if 'error' in json:
             updates = None
@@ -272,7 +274,7 @@ class Scraper():
 
     ###comments
     def find_comments(self):
-        json = self.get_json_for('comments')
+        json = jsn.loads(self.json_comments.decode('utf-8'))
 
         if 'error' in json:
             comments = None
@@ -305,22 +307,22 @@ class Scraper():
         return comments
 
 
-    ###photos
-    def find_photos(self):
-        json = self.get_json_for('photos')
-        if json['references'] == {}:
-            photos = {}
-        else:
-            all_photos = json['references']['photos']
-            photos = [photo['url'] for photo in all_photos]
+    # ###photos
+    # def find_photos(self):
+    #     json = self.get_json_for('photos')
+    #     if json['references'] == {}:
+    #         photos = {}
+    #     else:
+    #         all_photos = json['references']['photos']
+    #         photos = [photo['url'] for photo in all_photos]
 
-        return photos
+    #     return photos
 
 
     # STARTER function
     def start(self):
-        print('Starting...')
-        print(self.get_url())
+        #print('Starting...')
+        #print(self.get_url())
 
         #HTML
         self.scraping_date = str(date.today())
@@ -337,7 +339,7 @@ class Scraper():
         self.organizers = self.find_organizers()
 
         #API calls
-        ## counts:
+        # counts:
         self.counts_json = self.find_counts()
         if self.counts_json != None:
             self.total_photos = self.find_total_photos()
@@ -367,9 +369,7 @@ class Scraper():
         self.updates = self.find_updates()
 
         ## photos
-        self.photos = self.find_photos()
-
-        print("Done.")
+        # self.photos = self.find_photos()
 
 
     # GETTERS
@@ -414,7 +414,7 @@ class Scraper():
     def get_organizers(self):
         return self.organizers
 
-    ## API calls
+    # API calls
 
     # counts
     def get_total_photos(self):
@@ -452,9 +452,9 @@ class Scraper():
     def get_comments(self):
         return self.comments
 
-    # photos
-    def get_photos(self):
-        return self.photos
+    # # photos
+    # def get_photos(self):
+    #     return self.photos
 
     # DICTIONARY
     def get_dictionary(self):
@@ -479,43 +479,44 @@ class Scraper():
                       'No. of social media shares' : self.get_social_share_total(),
                       'Updates' : self.get_updates(),
                       'Comments' : self.get_comments(),
-                      'Photos' : self.get_photos()}
+                    #   'Photos' : self.get_photos()
+                    }
         return dictionary
 
-    #PRINT
-    def print_all(self):
-        print('HTML \n')
-        print(self.get_url())
-        print(self.get_title())
-        print(self.get_category())
-        print(self.get_category_url())
-        print(self.get_goal())
-        print(self.get_raised())
-        print(self.get_currency())
-        print(self.get_description())
-        print(self.get_creation_date())
-        print(self.get_organizers())
+    # #PRINT
+    # def print_all(self):
+    #     print('HTML \n')
+    #     print(self.get_url())
+    #     print(self.get_title())
+    #     print(self.get_category())
+    #     print(self.get_category_url())
+    #     print(self.get_goal())
+    #     print(self.get_raised())
+    #     print(self.get_currency())
+    #     print(self.get_description())
+    #     print(self.get_creation_date())
+    #     print(self.get_organizers())
 
-        print('API calls \n')
-        print('COUNTS')
-        print(self.get_total_photos())
-        print(self.get_total_community_photos())
-        print(self.get_total_donations())
-        print(self.get_total_unique_donors())
-        print(self.get_amount_raised_unattributed())
-        print(self.get_number_of_donations_unattributed())
-        print(self.get_campaign_hearts())
-        print(self.get_social_share_total())
-        print('\n')
+    #     print('API calls \n')
+    #     print('COUNTS')
+    #     print(self.get_total_photos())
+    #     print(self.get_total_community_photos())
+    #     print(self.get_total_donations())
+    #     print(self.get_total_unique_donors())
+    #     print(self.get_amount_raised_unattributed())
+    #     print(self.get_number_of_donations_unattributed())
+    #     print(self.get_campaign_hearts())
+    #     print(self.get_social_share_total())
+    #     print('\n')
 
-        print('UPDATES')
-        print(self.get_updates())
-        print('\n')
+    #     print('UPDATES')
+    #     print(self.get_updates())
+    #     print('\n')
 
-        print('COMMENTS')
-        print(self.get_comments())
-        print('\n')
+    #     print('COMMENTS')
+    #     print(self.get_comments())
+    #     print('\n')
 
-        print('PHOTOS')
-        print(self.get_photos())
-        print('\n')
+    #     print('PHOTOS')
+    #     print(self.get_photos())
+    #     print('\n')
